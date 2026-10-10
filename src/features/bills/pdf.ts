@@ -1,27 +1,33 @@
 import { jsPDF } from 'jspdf'
 import { autoTable } from 'jspdf-autotable'
+import { notoSansBold, notoSansRegular } from './fonts/notoSansSubset'
 import { toInvoiceModel } from './invoice'
 import type { SavedBill } from './types'
 
 const MARGIN = 14
+const FONT = 'NotoSans'
 
-// The built-in PDF fonts have no rupee glyph, so amounts are printed as "Rs.".
-function pdfMoney(value: string): string {
-  return value.replaceAll('\u20B9', 'Rs. ')
+// The built-in PDF fonts have no rupee glyph, so embed a Noto Sans subset that includes U+20B9.
+function registerFonts(doc: jsPDF): void {
+  doc.addFileToVFS('NotoSans-Regular.ttf', notoSansRegular)
+  doc.addFont('NotoSans-Regular.ttf', FONT, 'normal')
+  doc.addFileToVFS('NotoSans-Bold.ttf', notoSansBold)
+  doc.addFont('NotoSans-Bold.ttf', FONT, 'bold')
 }
 
 export function downloadBillPdf(bill: SavedBill): void {
   const invoice = toInvoiceModel(bill)
   const doc = new jsPDF()
+  registerFonts(doc)
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   let y = 20
 
-  doc.setFont('helvetica', 'bold')
+  doc.setFont(FONT, 'bold')
   doc.setFontSize(18)
   doc.text(invoice.businessName, MARGIN, y)
 
-  doc.setFont('helvetica', 'normal')
+  doc.setFont(FONT, 'normal')
   doc.setFontSize(11)
   y += 10
   doc.text(`Bill Number: ${invoice.billNumber}`, MARGIN, y)
@@ -48,12 +54,12 @@ export function downloadBillPdf(bill: SavedBill): void {
       line.itemName,
       line.itemDescription,
       line.quantity,
-      pdfMoney(line.unitPrice),
-      pdfMoney(line.lineAmount),
+      line.unitPrice,
+      line.lineAmount,
     ]),
     showHead: 'everyPage',
     rowPageBreak: 'avoid',
-    styles: { fontSize: 9, overflow: 'linebreak', cellPadding: 2, valign: 'top' },
+    styles: { font: FONT, fontSize: 9, overflow: 'linebreak', cellPadding: 2, valign: 'top' },
     headStyles: { fillColor: [15, 118, 110] },
     columnStyles: {
       2: { cellWidth: 55 },
@@ -70,12 +76,12 @@ export function downloadBillPdf(bill: SavedBill): void {
     y = 20
   }
 
-  doc.setFont('helvetica', 'bold')
+  doc.setFont(FONT, 'bold')
   doc.setFontSize(12)
-  doc.text(`Grand Total: ${pdfMoney(invoice.grandTotal)}`, pageWidth - MARGIN, y, {
+  doc.text(`Grand Total: ${invoice.grandTotal}`, pageWidth - MARGIN, y, {
     align: 'right',
   })
-  doc.setFont('helvetica', 'normal')
+  doc.setFont(FONT, 'normal')
   doc.setFontSize(11)
   doc.text(invoice.thankYou, MARGIN, y + 10)
 

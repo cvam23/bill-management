@@ -83,6 +83,26 @@ test('shows a loading state, then an error with Try again that reloads', async (
   expect(api.listBills).toHaveBeenCalledTimes(2)
 })
 
+test('shows Loading bills… and hides the previous rows while a new request is pending', async () => {
+  const api = makeApi([makeBill()])
+  const user = userEvent.setup()
+  renderPage(api)
+  expect(await screen.findByText('B-1001')).toBeInTheDocument()
+
+  let finish: (value: { rows: BillSummary[]; total: number }) => void = () => {}
+  api.listBills.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)))
+  await user.type(screen.getByLabelText('Search'), 'zzz')
+
+  expect(await screen.findByText('Loading bills…')).toBeInTheDocument()
+  expect(screen.queryByText('B-1001')).not.toBeInTheDocument()
+  expect(screen.queryByText('No matching bills')).not.toBeInTheDocument()
+
+  finish({ rows: [makeBill({ id: 'bill-2', billNumber: 'B-2002' })], total: 1 })
+
+  expect(await screen.findByText('B-2002')).toBeInTheDocument()
+  expect(screen.queryByText('Loading bills…')).not.toBeInTheDocument()
+})
+
 test('starts as Newest first and toggles to Oldest first', async () => {
   const api = makeApi([makeBill()])
   const user = userEvent.setup()

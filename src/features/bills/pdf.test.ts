@@ -14,6 +14,7 @@ vi.mock('jspdf', async (importOriginal) => {
       const doc: jsPDF = this
       vi.spyOn(doc, 'save').mockImplementation(() => doc)
       vi.spyOn(doc, 'text')
+      vi.spyOn(doc, 'setFont')
       docs.push(doc)
     }
   }
@@ -51,7 +52,10 @@ test('writes the invoice, adds pages when the table overflows, and saves as the 
   expect(written).toContain('Bill Number: RS-0001')
   expect(written).toContain('Date: 10 Oct 2026')
   expect(written).toContain('Customer: Asha')
-  expect(written).toContain('Grand Total: Rs. 30,000.00')
+  expect(written).toContain('Grand Total: ₹30,000.00')
   expect(written).toContain('Thank you for choosing Riddhi Sewing Machine.')
+  expect(Object.keys(doc.getFontList())).toContain('NotoSans')
+  expect(vi.mocked(doc.setFont).mock.calls.every(([name]) => name === 'NotoSans')).toBe(true)
+  expect(doc.getFont().fontName).toBe('NotoSans')
   expect(doc.getNumberOfPages()).toBeGreaterThan(1)
 })

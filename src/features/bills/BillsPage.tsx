@@ -142,7 +142,7 @@ export function BillsPage({ api = defaultApi }: BillsPageProps) {
         />
       </div>
 
-      {showResults && loadState === 'loading' && rows.length === 0 ? (
+      {showResults && loadState === 'loading' ? (
         <LoadingState title="Loading bills…" />
       ) : null}
 
@@ -156,7 +156,7 @@ export function BillsPage({ api = defaultApi }: BillsPageProps) {
         <EmptyState title={filtered ? 'No matching bills' : 'No bills yet'} />
       ) : null}
 
-      {showResults && loadState !== 'error' && rows.length > 0 ? (
+      {showResults && loadState === 'ready' && rows.length > 0 ? (
         <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-700">
@@ -189,7 +189,7 @@ export function BillsPage({ api = defaultApi }: BillsPageProps) {
         </div>
       ) : null}
 
-      {showResults && (total > PAGE_SIZE || query.page > 1) ? (
+      {showResults && loadState === 'ready' && (total > PAGE_SIZE || query.page > 1) ? (
         <div className="flex items-center justify-end gap-2 text-sm">
           <Button
             disabled={query.page <= 1}
