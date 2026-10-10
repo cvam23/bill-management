@@ -10,6 +10,8 @@ Vendor billing app for master items, draft bills, saved bills, and PDF export. B
 
 ## Setup
 
+A new Windows computer, including Git, nvm-windows, and Node 22, is covered in [docs/setup.md](docs/setup.md).
+
 1. Run `npm install`.
 
 2. Create a Supabase project.

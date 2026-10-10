@@ -7,6 +7,16 @@ import './styles/index.css'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppRouter />
-    <Toaster position="top-center" />
+    <Toaster
+      position="top-center"
+      toastOptions={{
+        style: {
+          fontFamily: '"Source Sans 3", sans-serif',
+          border: '1px solid #d5dee6',
+          borderRadius: '6px',
+          color: '#1c242c',
+        },
+      }}
+    />
   </StrictMode>,
 )

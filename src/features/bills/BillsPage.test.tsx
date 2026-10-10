@@ -36,6 +36,8 @@ test('shows a saved bill row with a walk-in customer, date, total, and a View li
   expect(row).toHaveTextContent('Walk-in Customer')
   expect(row).toHaveTextContent(/450\.00/)
   expect(screen.getByRole('link', { name: 'View' })).toHaveAttribute('href', '/bills/bill-1')
+  expect(screen.getByRole('button', { name: 'Print B-1001' })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Download PDF B-1001' })).toBeInTheDocument()
   expect(screen.getByRole('heading', { name: 'Saved Bills' })).toBeInTheDocument()
 })
 

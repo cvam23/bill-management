@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
+import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { TextArea } from '../../components/ui/TextArea'
@@ -28,6 +29,7 @@ import {
   setUnitPrice,
 } from './draft'
 import { ItemSearchDialog } from './ItemSearchDialog'
+import { lineFieldClass } from '../../styles/controls'
 import { billHeaderSchema } from './schema'
 import { clearDraft, loadDraft, saveDraft } from './storage'
 import type { Draft } from './types'
@@ -54,7 +56,7 @@ function isValidQuantityText(text: string): boolean {
 }
 
 const cell =
-  "flex justify-between gap-3 px-3 py-1 before:font-medium before:text-slate-600 before:content-[attr(data-label)] md:table-cell md:py-2 md:before:content-none"
+  'flex justify-between gap-3 px-3 py-1.5 before:font-mono before:text-[11px] before:tracking-[0.12em] before:text-muted before:uppercase before:content-[attr(data-label)] md:table-cell md:px-3 md:py-2.5 md:before:content-none'
 
 export function BillingPage() {
   const [draft, setDraft] = useState<Draft>(loadOrCreateDraft)
@@ -203,16 +205,20 @@ export function BillingPage() {
     const printable = savedBill?.id === saved.id ? savedBill : null
 
     return (
-      <section className="space-y-4 p-4 md:p-6">
-        <h1 className="no-print text-xl font-semibold text-slate-900">Bill saved</h1>
-        <div className="no-print space-y-1 rounded-lg border border-slate-200 bg-white p-4 text-sm">
-          <p>Bill number: {saved.billNumber}</p>
+      <section className="space-y-5">
+        <div className="no-print">
+          <PageHeader kicker="Ledger" title="Bill saved" />
+        </div>
+        <div className="no-print space-y-1 rounded-md border border-line bg-white p-4 text-sm">
+          <p>
+            Bill number: <span className="font-mono">{saved.billNumber}</span>
+          </p>
           <p>Grand total: {formatInr(parseRupeesToPaise(saved.grandTotal) ?? 0)}</p>
         </div>
         <div className="no-print flex flex-wrap gap-2">
           <Link
             to={`/bills/${saved.id}`}
-            className="inline-flex items-center justify-center rounded-md border border-teal-800 bg-teal-800 px-4 py-2 text-sm font-medium text-white hover:bg-teal-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800"
+            className="inline-flex items-center justify-center rounded-md border border-thread-ink bg-thread-ink px-4 py-2 text-sm font-semibold text-white hover:border-thread hover:bg-thread focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-thread-ink"
           >
             View Bill
           </Link>
@@ -233,13 +239,13 @@ export function BillingPage() {
     result === null || result.query !== debouncedSearch || search !== debouncedSearch
 
   return (
-    <section className="space-y-4 p-4 md:p-6">
-      <h1 className="text-xl font-semibold text-slate-900">New Bill</h1>
+    <section className="space-y-5">
+      <PageHeader kicker="Counter" title="New Bill" />
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="space-y-1">
-          <span className="block text-sm font-medium text-slate-700">Bill Number</span>
-          <p className="py-2 text-sm text-slate-900">Generated on save</p>
+      <div className="grid gap-4 rounded-md border border-line bg-white p-4 md:grid-cols-2">
+        <div className="space-y-1.5">
+          <span className="block text-sm font-semibold text-ink">Bill Number</span>
+          <p className="py-2 font-mono text-sm text-muted">Generated on save</p>
         </div>
         <TextField
           id="bill-date"
@@ -272,10 +278,15 @@ export function BillingPage() {
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-slate-900">Items</h2>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h2 className="font-display text-3xl leading-none font-semibold tracking-wide text-ink uppercase">
+          Items
+        </h2>
         <div className="flex flex-wrap items-center gap-3">
-          <Link to="/services" className="text-sm text-teal-800 underline">
+          <Link
+            to="/services"
+            className="text-sm font-semibold text-thread-ink underline decoration-thread/40 underline-offset-4 hover:decoration-thread-ink"
+          >
             Add a missing item
           </Link>
           <Button variant="primary" onClick={openDialog}>
@@ -287,30 +298,30 @@ export function BillingPage() {
       {draft.lines.length === 0 ? (
         <EmptyState title="No items added yet" />
       ) : (
-        <table className="block w-full rounded-lg border-slate-200 text-left text-sm md:table md:border md:bg-white">
-          <thead className="hidden bg-slate-50 text-slate-700 md:table-header-group">
+        <table className="block w-full text-left text-sm md:table md:overflow-hidden md:rounded-md md:border md:border-line md:bg-white">
+          <thead className="hidden bg-housing/4 font-mono text-[11px] tracking-[0.12em] text-muted uppercase md:table-header-group">
             <tr>
-              <th className="px-3 py-2 font-medium">Sr. No.</th>
-              <th className="px-3 py-2 font-medium">Item Number</th>
-              <th className="px-3 py-2 font-medium">Item Name</th>
-              <th className="px-3 py-2 font-medium">Item Description</th>
-              <th className="px-3 py-2 font-medium">Item Type</th>
-              <th className="px-3 py-2 font-medium">Quantity</th>
-              <th className="px-3 py-2 font-medium">Unit Price</th>
-              <th className="px-3 py-2 text-right font-medium">Line Amount</th>
-              <th className="px-3 py-2 font-medium">Remove</th>
+              <th className="px-3 py-2.5 font-medium">Sr. No.</th>
+              <th className="px-3 py-2.5 font-medium">Item Number</th>
+              <th className="px-3 py-2.5 font-medium">Item Name</th>
+              <th className="px-3 py-2.5 font-medium">Item Description</th>
+              <th className="px-3 py-2.5 font-medium">Item Type</th>
+              <th className="px-3 py-2.5 font-medium">Quantity</th>
+              <th className="px-3 py-2.5 font-medium">Unit Price</th>
+              <th className="px-3 py-2.5 text-right font-medium">Amount</th>
+              <th className="px-3 py-2.5 font-medium">Remove</th>
             </tr>
           </thead>
           <tbody className="block space-y-3 md:table-row-group md:space-y-0">
             {draft.lines.map((line, index) => (
               <tr
                 key={line.serviceId}
-                className="block rounded-lg border border-slate-200 bg-white py-2 md:table-row md:rounded-none md:border-0 md:border-t md:py-0"
+                className="block rounded-md border border-line bg-white py-2 md:table-row md:rounded-none md:border-0 md:border-t md:border-line md:py-0"
               >
                 <td data-label="Sr. No." className={cell}>
                   {index + 1}
                 </td>
-                <td data-label="Item Number" className={cell}>
+                <td data-label="Item Number" className={`${cell} font-mono`}>
                   {line.itemNumber}
                 </td>
                 <td data-label="Item Name" className={cell}>
@@ -338,11 +349,11 @@ export function BillingPage() {
                           setQtyEdits((edits) => dropEdit(edits, line.serviceId))
                         }
                       }}
-                      className="w-24 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-teal-800"
+                      className={`w-24 ${lineFieldClass}`}
                     />
                     {qtyEdits[line.serviceId] !== undefined &&
                     !isValidQuantityText(qtyEdits[line.serviceId]) ? (
-                      <p role="alert" className="text-sm text-red-700">
+                      <p role="alert" className="text-sm text-danger">
                         Quantity must be a whole number from 1 to 9999.
                       </p>
                     ) : null}
@@ -362,16 +373,16 @@ export function BillingPage() {
                         setBadPrices((bad) => dropEdit(bad, line.serviceId))
                       }}
                       onBlur={() => commitPrice(line.serviceId)}
-                      className="w-28 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-teal-800"
+                      className={`w-28 font-mono ${lineFieldClass}`}
                     />
                     {badPrices[line.serviceId] ? (
-                      <p role="alert" className="text-sm text-red-700">
+                      <p role="alert" className="text-sm text-danger">
                         Enter a valid price.
                       </p>
                     ) : null}
                   </div>
                 </td>
-                <td data-label="Line Amount" className={`${cell} md:text-right`}>
+                <td data-label="Amount" className={`${cell} font-mono md:text-right`}>
                   {formatInr(lineAmountPaise(line.quantity, line.unitPricePaise))}
                 </td>
                 <td data-label="Remove" className={cell}>
@@ -388,9 +399,14 @@ export function BillingPage() {
         </table>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
-        <p className="text-lg font-semibold text-slate-900">
-          Grand Total: {formatInr(grandTotalPaise(draft))}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line bg-white px-4 py-3">
+        <p className="text-ink">
+          <span className="font-mono text-[11px] tracking-[0.14em] text-muted uppercase">
+            Grand Total
+          </span>
+          <span className="mt-1 block font-display text-3xl leading-none font-semibold tracking-wide sm:text-4xl">
+            {formatInr(grandTotalPaise(draft))}
+          </span>
         </p>
         <Button
           variant="primary"

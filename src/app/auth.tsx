@@ -93,7 +93,11 @@ export function RequireAuth() {
   const { session, authorized, loading } = useAuth()
 
   if (loading) {
-    return <LoadingState title="Checking your session…" />
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bench">
+        <LoadingState title="Checking your session…" />
+      </div>
+    )
   }
 
   return session && authorized ? <Outlet /> : <Navigate to="/login" replace />

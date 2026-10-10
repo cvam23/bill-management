@@ -1,25 +1,33 @@
 import type { ButtonHTMLAttributes } from 'react'
+import { focusRing, iconButtonClass } from '../../styles/controls'
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'secondary' | 'danger'
+  variant?: 'primary' | 'secondary' | 'danger' | 'reset'
+  icon?: boolean
 }
 
 const variants = {
-  primary: 'bg-teal-800 text-white hover:bg-teal-900 border border-teal-800',
-  secondary: 'bg-white text-slate-800 hover:bg-slate-100 border border-slate-300',
-  danger: 'bg-red-700 text-white hover:bg-red-800 border border-red-700',
+  primary: 'bg-thread-ink text-white hover:bg-thread border border-thread-ink hover:border-thread',
+  secondary: 'bg-white text-ink hover:bg-bench border border-line',
+  danger: 'bg-danger text-white hover:bg-red-950 border border-danger',
+  reset: 'border border-edit bg-edit text-white motion-safe:transition-colors hover:border-edit-ink hover:bg-edit-ink',
 }
 
 export function Button({
   type = 'button',
   variant = 'secondary',
+  icon = false,
   className = '',
   ...props
 }: ButtonProps) {
+  const shape = icon
+    ? iconButtonClass
+    : `inline-flex items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-semibold ${focusRing} ${variants[variant]}`
+
   return (
     <button
       type={type}
-      className={`inline-flex items-center justify-center gap-1 rounded-md px-4 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800 disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${className}`}
+      className={`${shape} disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       {...props}
     />
   )

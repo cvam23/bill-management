@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { LoadingState } from '../../components/ui/LoadingState'
+import { focusRing } from '../../styles/controls'
 import { downloadBillPdf, getBill } from './api'
 import { InvoiceSheet } from './InvoiceSheet'
 import type { SavedBill } from './types'
@@ -32,9 +33,12 @@ export function BillDetailPage() {
   const bill = current?.bill ?? null
 
   return (
-    <section className="space-y-4 p-4 md:p-6">
+    <section className="space-y-5">
       <div className="no-print">
-        <Link to="/bills" className="text-sm text-teal-800 underline">
+        <Link
+          to="/bills"
+          className={`text-sm font-semibold text-thread-ink underline decoration-thread/40 underline-offset-4 hover:decoration-thread-ink ${focusRing}`}
+        >
           Back to Saved Bills
         </Link>
       </div>

@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/Button'
 import { Dialog } from '../../components/ui/Dialog'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { formatInr, parseRupeesToPaise } from '../../lib/currency'
+import { fieldClass } from '../../styles/controls'
 import type { MasterItem } from '../services/api'
 
 type ItemSearchDialogProps = {
@@ -57,11 +58,11 @@ export function ItemSearchDialog({
   }
 
   return (
-    <Dialog title="Add Item" onClose={onClose}>
+    <Dialog title="Add Item" onClose={onClose} className="max-w-lg">
       <div className="space-y-3">
         <div className="flex items-end gap-2">
           <div className="flex-1 space-y-1">
-            <label htmlFor={`${baseId}-search`} className="block text-sm font-medium text-slate-700">
+            <label htmlFor={`${baseId}-search`} className="block text-sm font-semibold text-ink">
               Search items
             </label>
             <input
@@ -76,7 +77,7 @@ export function ItemSearchDialog({
               value={search}
               onChange={(event) => changeSearch(event.target.value)}
               onKeyDown={onKeyDown}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-teal-800"
+              className={fieldClass}
             />
           </div>
           <Button onClick={() => changeSearch('')}>Clear search</Button>
@@ -84,19 +85,19 @@ export function ItemSearchDialog({
 
         {loading ? <LoadingState title="Searching…" /> : null}
         {error ? (
-          <p role="alert" className="text-sm text-red-700">
+          <p role="alert" className="text-sm text-danger">
             {error}
           </p>
         ) : null}
         {!loading && !error && items.length === 0 ? (
-          <p className="p-4 text-center text-sm text-slate-600">No matching items</p>
+          <p className="p-4 text-center text-sm text-muted">No matching items</p>
         ) : null}
 
         <ul
           id={listboxId}
           role="listbox"
           aria-label="Matching items"
-          className="max-h-80 divide-y divide-slate-200 overflow-y-auto"
+          className="max-h-80 divide-y divide-line overflow-y-auto rounded-md border border-line"
         >
           {items.map((item, index) => (
             <li
@@ -106,19 +107,19 @@ export function ItemSearchDialog({
               aria-selected={index === active}
               onClick={() => onSelect(item)}
               onMouseEnter={() => setActiveIndex(index)}
-              className={`cursor-pointer space-y-1 px-3 py-2 text-sm ${
-                index === active ? 'bg-teal-50' : ''
+              className={`cursor-pointer space-y-1 px-3 py-2.5 text-sm ${
+                index === active ? 'bg-bench' : 'bg-white'
               }`}
             >
               <div className="flex justify-between gap-2">
-                <span className="font-medium text-slate-900">{item.itemNumber}</span>
-                <span>{formatInr(parseRupeesToPaise(item.defaultPrice) ?? 0)}</span>
+                <span className="font-mono font-medium text-ink">{item.itemNumber}</span>
+                <span className="font-mono">{formatInr(parseRupeesToPaise(item.defaultPrice) ?? 0)}</span>
               </div>
-              <div className="text-slate-900">{item.name}</div>
-              <div className="text-slate-600">{item.description ?? '—'}</div>
-              <div className="text-slate-600">{typeLabels[item.itemType]}</div>
+              <div className="font-medium text-ink">{item.name}</div>
+              <div className="text-muted">{item.description ?? '—'}</div>
+              <div className="text-muted">{typeLabels[item.itemType]}</div>
               {rowError?.id === item.id ? (
-                <p role="alert" className="text-red-700">
+                <p role="alert" className="text-danger">
                   {rowError.message}
                 </p>
               ) : null}
