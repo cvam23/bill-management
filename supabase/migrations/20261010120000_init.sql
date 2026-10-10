@@ -20,7 +20,7 @@ as $$
   );
 $$;
 
-revoke all on function public.is_authorized() from public;
+revoke all on function public.is_authorized() from public, anon;
 grant execute on function public.is_authorized() to authenticated;
 
 create sequence public.service_item_number_seq start with 1001;
@@ -378,11 +378,12 @@ declare
   line_service_id uuid;
   line_quantity numeric;
   line_unit_price numeric;
+  line_amount numeric;
   service_row public.services;
   new_bill public.bills;
-  computed_total numeric(12,2) := 0;
-  element_count integer;
-  distinct_count integer;
+  computed_total numeric := 0;
+  seen_service_ids uuid[] := '{}';
+  max_money constant numeric := 9999999999.99;
 begin
   perform public.require_authorized();
 
@@ -418,13 +419,25 @@ begin
     raise exception 'no_line_items: Add at least one item.';
   end if;
 
-  select count(*), count(distinct value->>'service_id')
-    into element_count, distinct_count
-  from jsonb_array_elements(p_lines);
+  for line in select value from jsonb_array_elements(p_lines)
+  loop
+    if nullif(btrim(coalesce(line->>'service_id', '')), '') is null then
+      raise exception 'item_not_found: That item no longer exists.';
+    end if;
 
-  if element_count <> distinct_count then
-    raise exception 'duplicate_line: Each item can appear only once on a bill.';
-  end if;
+    begin
+      line_service_id := (line->>'service_id')::uuid;
+    exception
+      when invalid_text_representation then
+        raise exception 'item_not_found: That item no longer exists.';
+    end;
+
+    if line_service_id = any(seen_service_ids) then
+      raise exception 'duplicate_line: Each item can appear only once on a bill.';
+    end if;
+
+    seen_service_ids := array_append(seen_service_ids, line_service_id);
+  end loop;
 
   for line in select value from jsonb_array_elements(p_lines)
   loop
@@ -446,7 +459,17 @@ begin
         raise exception 'invalid_unit_price: Enter a non-negative amount with at most two decimal places.';
     end;
 
-    computed_total := computed_total + (line_quantity * line_unit_price);
+    line_amount := line_quantity * line_unit_price;
+
+    if line_amount > max_money then
+      raise exception 'invalid_unit_price: Enter a non-negative amount with at most two decimal places.';
+    end if;
+
+    if computed_total + line_amount > max_money then
+      raise exception 'invalid_unit_price: Enter a non-negative amount with at most two decimal places.';
+    end if;
+
+    computed_total := computed_total + line_amount;
   end loop;
 
   insert into public.bills (
@@ -462,7 +485,7 @@ begin
     p_bill_date,
     cleaned_customer_name,
     cleaned_customer_address,
-    computed_total,
+    computed_total::numeric(12,2),
     p_idempotency_key
   )
   returning * into new_bill;
@@ -551,10 +574,10 @@ revoke all on function public.clean_money(numeric, text) from public, anon, auth
 revoke all on function public.clean_name(text) from public, anon, authenticated;
 revoke all on function public.clean_description(text) from public, anon, authenticated;
 revoke all on function public.clean_item_type(text) from public, anon, authenticated;
-revoke all on function public.create_master_item(text, text, text, numeric) from public;
-revoke all on function public.update_master_item(uuid, text, text, text, numeric) from public;
-revoke all on function public.set_master_item_active(uuid, boolean) from public;
-revoke all on function public.create_bill(uuid, date, text, text, jsonb) from public;
+revoke all on function public.create_master_item(text, text, text, numeric) from public, anon;
+revoke all on function public.update_master_item(uuid, text, text, text, numeric) from public, anon;
+revoke all on function public.set_master_item_active(uuid, boolean) from public, anon;
+revoke all on function public.create_bill(uuid, date, text, text, jsonb) from public, anon;
 grant execute on function public.create_master_item(text, text, text, numeric) to authenticated;
 grant execute on function public.update_master_item(uuid, text, text, text, numeric) to authenticated;
 grant execute on function public.set_master_item_active(uuid, boolean) to authenticated;
