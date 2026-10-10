@@ -97,4 +97,15 @@ body {
     display: block !important;
     width: 100% !important;
   }
+
+  .invoice-sheet {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 269mm !important;
+    gap: 5mm !important;
+  }
+
+  .invoice-close {
+    margin-top: auto !important;
+  }
 }

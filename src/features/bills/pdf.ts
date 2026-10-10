@@ -12,6 +12,28 @@ const HOUSING: [number, number, number] = [22, 28, 34]
 const THREAD: [number, number, number] = [194, 65, 45]
 const BENCH: [number, number, number] = [238, 242, 245]
 
+function drawLogo(doc: jsPDF, x: number, y: number, size: number): void {
+  const scale = size / 40
+  const px = (value: number) => x + value * scale
+  const py = (value: number) => y + value * scale
+
+  doc.setFillColor(...THREAD)
+  doc.roundedRect(x, y, size, size, 1.8 * scale, 1.8 * scale, 'F')
+
+  doc.setFillColor(255, 255, 255)
+  doc.rect(px(5.5), py(30.2), 29 * scale, 3 * scale, 'F')
+  doc.rect(px(7.5), py(11.2), 5.5 * scale, 15 * scale, 'F')
+  doc.rect(px(13), py(11.2), 14.8 * scale, 4.4 * scale, 'F')
+  doc.rect(px(27.8), py(11.2), 5.4 * scale, 9.4 * scale, 'F')
+  doc.rect(px(26.55), py(20.6), 2.15 * scale, 9 * scale, 'F')
+
+  doc.circle(px(11), py(13.4), 3.5 * scale, 'F')
+  doc.setFillColor(...THREAD)
+  doc.circle(px(11), py(13.4), 2.15 * scale, 'F')
+  doc.setFillColor(255, 255, 255)
+  doc.circle(px(11), py(13.4), 1.05 * scale, 'F')
+}
+
 // The built-in PDF fonts have no rupee glyph, so embed a Noto Sans subset that includes U+20B9.
 function registerFonts(doc: jsPDF): void {
   doc.addFileToVFS('NotoSans-Regular.ttf', notoSansRegular)
@@ -30,15 +52,19 @@ export function downloadBillPdf(bill: SavedBill): void {
   doc.setFillColor(...THREAD)
   doc.rect(0, 0, pageWidth, 3.2, 'F')
 
+  const logoSize = 16
+  drawLogo(doc, MARGIN, 9, logoSize)
+  const titleX = MARGIN + logoSize + 4
+
   doc.setTextColor(...INK)
   doc.setFont(FONT, 'bold')
   doc.setFontSize(20)
-  doc.text(invoice.businessName, MARGIN, 16)
+  doc.text(invoice.businessName, titleX, 16)
 
   doc.setFont(FONT, 'normal')
   doc.setFontSize(8)
   doc.setTextColor(...MUTED)
-  doc.text('Service and spare parts', MARGIN, 21)
+  doc.text('Service and spare parts', titleX, 22)
 
   doc.setTextColor(...INK)
   doc.setFont(FONT, 'bold')
@@ -114,14 +140,18 @@ export function downloadBillPdf(bill: SavedBill): void {
   })
 
   const table = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable
-  y = (table?.finalY ?? y) + 8
-  if (y > pageHeight - 42) {
+  const plateHeight = 18
+  const footerHeight = plateHeight + 12
+  const bottom = pageHeight - MARGIN
+  y = (table?.finalY ?? y) + 6
+  if (y + footerHeight > bottom) {
     doc.addPage()
-    y = 18
+    y = MARGIN
+  } else if (bottom - (y + footerHeight) > 28) {
+    y = bottom - footerHeight
   }
 
   const plateWidth = 68
-  const plateHeight = 18
   const plateX = pageWidth - MARGIN - plateWidth
   doc.setFillColor(...THREAD)
   doc.rect(plateX, y, plateWidth, plateHeight, 'F')

@@ -21,7 +21,7 @@ export function LoginPage() {
   } = useForm<LoginValues>({ resolver: zodResolver(schema) })
 
   if (session && authorized) {
-    return <Navigate to="/billing" replace />
+    return <Navigate to="/" replace />
   }
 
   async function onSubmit(values: LoginValues) {

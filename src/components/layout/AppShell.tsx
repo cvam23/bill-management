@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { Archive, ClipboardList, LogOut, Menu, Wrench } from 'lucide-react'
+import { Archive, ClipboardList, House, LogOut, Menu, Wrench } from 'lucide-react'
 import { Logo } from './Logo'
 
 type AppShellProps = {
@@ -8,6 +8,7 @@ type AppShellProps = {
 }
 
 const links = [
+  { to: '/', label: 'Home', icon: House },
   { to: '/billing', label: 'Billing', icon: ClipboardList },
   { to: '/services', label: 'Services & Parts', icon: Wrench },
   { to: '/bills', label: 'Saved Bills', icon: Archive },
@@ -64,6 +65,7 @@ export function AppShell({ onSignOut }: AppShellProps) {
                 <li key={link.to}>
                   <NavLink
                     to={link.to}
+                    end={link.to === '/'}
                     onClick={() => setMenuOpen(false)}
                     className={({ isActive }) =>
                       `flex items-center gap-2.5 rounded-md px-3 py-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:py-2.5 ${
