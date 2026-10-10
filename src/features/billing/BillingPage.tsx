@@ -317,7 +317,7 @@ export function BillingPage() {
                   {line.itemName}
                 </td>
                 <td data-label="Item Description" className={cell}>
-                  {line.itemDescription ?? 'â€”'}
+                  {line.itemDescription ?? '—'}
                 </td>
                 <td data-label="Item Type" className={cell}>
                   {typeLabels[line.itemType]}

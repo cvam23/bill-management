@@ -99,7 +99,7 @@ test('searches bill number and customer name', async () => {
 
   expect(calls).toContainEqual([
     'or',
-    ['bill_number.ilike."%100\\_%",customer_name.ilike."%100\\_%"'],
+    ['bill_number.ilike."%100\\\\_%",customer_name.ilike."%100\\\\_%"'],
   ])
 })
 

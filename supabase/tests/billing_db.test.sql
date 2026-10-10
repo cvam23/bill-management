@@ -1,5 +1,5 @@
 begin;
-select plan(12);
+select plan(21);
 
 insert into auth.users (id, instance_id, aud, role, email)
 values
@@ -239,6 +239,101 @@ select ok(
   pg_get_functiondef('public.create_bill(uuid,date,text,text,jsonb)'::regprocedure) like '%nextval(''public.bill_number_seq''%'
     and pg_get_functiondef('public.create_bill(uuid,date,text,text,jsonb)'::regprocedure) not like '%max(%',
   'create_bill uses bill_number_seq and does not use max()'
+);
+
+-- 13. zero quantity is rejected
+insert into test_ctx
+select 'probe_id', (public.create_master_item('Quantity Probe', null, 'service', 5)).id::text;
+select throws_like(
+  $$select * from public.create_bill(
+    '10000000-0000-0000-0000-000000000006'::uuid,
+    date '2026-10-10',
+    null,
+    null,
+    jsonb_build_array(jsonb_build_object(
+      'service_id', (select v from test_ctx where k = 'probe_id'),
+      'quantity', 0,
+      'unit_price', 5.00
+    ))
+  )$$,
+  'invalid_quantity:%',
+  'zero quantity is rejected with invalid_quantity'
+);
+
+-- 14. unknown service_id is rejected and no bill is left behind
+select throws_like(
+  $$select * from public.create_bill(
+    '10000000-0000-0000-0000-000000000007'::uuid,
+    date '2026-10-10',
+    null,
+    null,
+    jsonb_build_array(jsonb_build_object(
+      'service_id', '20000000-0000-0000-0000-000000000099',
+      'quantity', 1,
+      'unit_price', 5.00
+    ))
+  )$$,
+  'item_not_found:%',
+  'unknown service_id is rejected with item_not_found'
+);
+select is(
+  (select count(*) from public.bills where idempotency_key = '10000000-0000-0000-0000-000000000007'),
+  0::bigint,
+  'unknown service_id leaves no bill row'
+);
+
+-- The balance triggers are deferred. Every create_bill call above that saves a bill has
+-- finished, so fire the pending checks now (this runs after the failing create_bill cases,
+-- because immediate checking would hide their real error behind bill_total_mismatch).
+set constraints all immediate;
+
+-- 15. direct writes to bill tables are denied for authenticated users
+select throws_ok(
+  $$insert into public.bills (bill_number, bill_date, grand_total, idempotency_key)
+    values ('B-DIRECT', date '2026-10-10', 0, '10000000-0000-0000-0000-000000000008')$$,
+  '42501',
+  null,
+  'authenticated user cannot insert directly into bills'
+);
+
+-- 16. anonymous users cannot read bill tables or execute write functions
+reset role;
+set local role anon;
+select throws_ok(
+  $$select * from public.bills$$,
+  '42501',
+  null,
+  'anon cannot select from bills'
+);
+select throws_ok(
+  $$select * from public.bill_items$$,
+  '42501',
+  null,
+  'anon cannot select from bill_items'
+);
+select throws_ok(
+  $$select * from public.create_bill(
+    '10000000-0000-0000-0000-000000000009'::uuid,
+    date '2026-10-10',
+    null,
+    null,
+    '[]'::jsonb
+  )$$,
+  '42501',
+  null,
+  'anon cannot execute create_bill'
+);
+select throws_ok(
+  $$select public.update_master_item('20000000-0000-0000-0000-000000000099'::uuid, 'Nope', null, 'service', 1)$$,
+  '42501',
+  null,
+  'anon cannot execute update_master_item'
+);
+select throws_ok(
+  $$select public.set_master_item_active('20000000-0000-0000-0000-000000000099'::uuid, false)$$,
+  '42501',
+  null,
+  'anon cannot execute set_master_item_active'
 );
 
 reset role;

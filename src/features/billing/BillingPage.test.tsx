@@ -273,3 +273,13 @@ test('keeps View Bill and Create New Bill when the saved bill cannot be loaded',
   expect(screen.queryByRole('button', { name: 'Download PDF' })).not.toBeInTheDocument()
 })
 
+test('shows a real em dash for a line without a description', () => {
+  saveDraft(sessionStorage, {
+    ...storedDraft,
+    lines: [{ ...storedDraft.lines[0], itemDescription: null }],
+  })
+  renderPage()
+
+  expect(screen.getByText('—')).toBeInTheDocument()
+  expect(screen.queryByText('â€”')).not.toBeInTheDocument()
+})
