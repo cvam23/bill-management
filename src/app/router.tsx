@@ -1,14 +1,11 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '../components/layout/AppShell'
 import { LoginPage } from '../features/auth/LoginPage'
+import { ServicesPage } from '../features/services/ServicesPage'
 import { AuthProvider, RequireAuth, useAuth } from './auth'
 
 function Billing() {
   return <p>Billing</p>
-}
-
-function Services() {
-  return <p>Services</p>
 }
 
 function Bills() {
@@ -34,7 +31,7 @@ export function AppRouter() {
           <Route element={<RequireAuth />}>
             <Route element={<AuthenticatedShell />}>
               <Route path="/billing" element={<Billing />} />
-              <Route path="/services" element={<Services />} />
+              <Route path="/services" element={<ServicesPage />} />
               <Route path="/bills" element={<Bills />} />
               <Route path="/bills/:id" element={<Bill />} />
             </Route>
