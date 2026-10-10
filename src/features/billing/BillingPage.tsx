@@ -12,6 +12,9 @@ import {
   parseRupeesToPaise,
 } from '../../lib/currency'
 import { todayIsoDate } from '../../lib/date'
+import { downloadBillPdf, getBill } from '../bills/api'
+import { InvoiceSheet } from '../bills/InvoiceSheet'
+import type { SavedBill } from '../bills/types'
 import type { MasterItem } from '../services/api'
 import { createBill, searchActiveItems } from './api'
 import type { CreatedBill } from './api'
@@ -56,6 +59,7 @@ const cell =
 export function BillingPage() {
   const [draft, setDraft] = useState<Draft>(loadOrCreateDraft)
   const [saved, setSaved] = useState<CreatedBill | null>(null)
+  const [savedBill, setSavedBill] = useState<SavedBill | null>(null)
   const [saving, setSaving] = useState(false)
   const [qtyEdits, setQtyEdits] = useState<Record<string, string>>({})
   const [priceEdits, setPriceEdits] = useState<Record<string, string>>({})
@@ -172,6 +176,13 @@ export function BillingPage() {
       toast.success('Bill saved.')
       clearDraft(sessionStorage)
       setSaved(created)
+      try {
+        const bill = await getBill(created.id)
+        if (!bill) throw new Error('Bill not found')
+        setSavedBill(bill)
+      } catch {
+        toast.error('Could not load the saved bill for printing.')
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not save the bill.')
     } finally {
@@ -182,20 +193,23 @@ export function BillingPage() {
   function startNewBill() {
     commit(newDraft())
     setSaved(null)
+    setSavedBill(null)
     setQtyEdits({})
     setPriceEdits({})
     setBadPrices({})
   }
 
   if (saved) {
+    const printable = savedBill?.id === saved.id ? savedBill : null
+
     return (
       <section className="space-y-4 p-4 md:p-6">
-        <h1 className="text-xl font-semibold text-slate-900">Bill saved</h1>
-        <div className="space-y-1 rounded-lg border border-slate-200 bg-white p-4 text-sm">
+        <h1 className="no-print text-xl font-semibold text-slate-900">Bill saved</h1>
+        <div className="no-print space-y-1 rounded-lg border border-slate-200 bg-white p-4 text-sm">
           <p>Bill number: {saved.billNumber}</p>
           <p>Grand total: {formatInr(parseRupeesToPaise(saved.grandTotal) ?? 0)}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="no-print flex flex-wrap gap-2">
           <Link
             to={`/bills/${saved.id}`}
             className="inline-flex items-center justify-center rounded-md border border-teal-800 bg-teal-800 px-4 py-2 text-sm font-medium text-white hover:bg-teal-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800"
@@ -203,7 +217,14 @@ export function BillingPage() {
             View Bill
           </Link>
           <Button onClick={startNewBill}>Create New Bill</Button>
+          {printable ? (
+            <>
+              <Button onClick={() => window.print()}>Print</Button>
+              <Button onClick={() => downloadBillPdf(printable)}>Download PDF</Button>
+            </>
+          ) : null}
         </div>
+        {printable ? <InvoiceSheet bill={printable} /> : null}
       </section>
     )
   }

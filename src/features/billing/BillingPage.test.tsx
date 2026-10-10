@@ -4,12 +4,15 @@ import { MemoryRouter } from 'react-router-dom'
 import { vi } from 'vitest'
 import { toast } from 'sonner'
 import { BillingPage } from './BillingPage'
+import * as billsApi from '../bills/api'
+import type { SavedBill } from '../bills/types'
 import * as api from './api'
 import { loadDraft, saveDraft } from './storage'
 import type { Draft } from './types'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock('./api')
+vi.mock('../bills/api')
 
 const storedDraft: Draft = {
   idempotencyKey: 'key-1',
@@ -189,24 +192,61 @@ test('keeps the draft in place when saving fails', async () => {
   expect(screen.getByRole('button', { name: 'Save Bill' })).toBeEnabled()
 })
 
-test('shows View Bill and Create New Bill after saving, then persists a new draft', async () => {
+const createdBill = {
+  id: 'bill-1',
+  billNumber: 'RS-0001',
+  billDate: '2026-10-10',
+  grandTotal: '600.00',
+}
+
+const savedBill: SavedBill = {
+  id: 'bill-1',
+  billNumber: 'RS-0001',
+  billDate: '2026-10-10',
+  customerName: 'Asha',
+  customerAddress: null,
+  grandTotal: '600.00',
+  lines: [
+    {
+      lineNumber: 1,
+      itemNumber: '1001',
+      itemName: 'Machine Service',
+      itemDescription: 'General machine servicing',
+      itemType: 'service',
+      quantity: 2,
+      unitPrice: '300.00',
+      lineAmount: '600.00',
+    },
+  ],
+}
+
+test('shows View Bill, Create New Bill, Print and Download PDF after saving, then persists a new draft', async () => {
   const user = userEvent.setup()
   saveDraft(sessionStorage, storedDraft)
-  vi.mocked(api.createBill).mockResolvedValue({
-    id: 'bill-1',
-    billNumber: 'RS-0001',
-    billDate: '2026-10-10',
-    grandTotal: '600.00',
-  })
+  vi.mocked(api.createBill).mockResolvedValue(createdBill)
+  vi.mocked(billsApi.getBill).mockResolvedValue(savedBill)
+  const print = vi.spyOn(window, 'print').mockImplementation(() => {})
   renderPage()
 
   await user.click(screen.getByRole('button', { name: 'Save Bill' }))
 
   expect(toast.success).toHaveBeenCalledWith('Bill saved.')
+  expect(billsApi.getBill).toHaveBeenCalledWith('bill-1')
   expect(screen.getByRole('link', { name: 'View Bill' })).toHaveAttribute('href', '/bills/bill-1')
-  expect(screen.getByText(/RS-0001/)).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Create New Bill' })).toBeInTheDocument()
+  expect(await screen.findByRole('button', { name: 'Print' })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Download PDF' })).toBeInTheDocument()
+  expect(screen.getByRole('article', { name: 'Invoice RS-0001' })).toHaveTextContent(
+    'Thank you for choosing Riddhi Sewing Machine.',
+  )
+  expect(screen.getAllByText(/RS-0001/).length).toBeGreaterThan(0)
   expect(loadDraft(sessionStorage)).toBeNull()
-  expect(screen.queryByRole('button', { name: 'Print' })).not.toBeInTheDocument()
+
+  await user.click(screen.getByRole('button', { name: 'Print' }))
+  expect(print).toHaveBeenCalledTimes(1)
+
+  await user.click(screen.getByRole('button', { name: 'Download PDF' }))
+  expect(billsApi.downloadBillPdf).toHaveBeenCalledWith(savedBill)
 
   await user.click(screen.getByRole('button', { name: 'Create New Bill' }))
 
@@ -214,3 +254,22 @@ test('shows View Bill and Create New Bill after saving, then persists a new draf
   expect(stored().lines).toEqual([])
   expect(stored().idempotencyKey).not.toBe('key-1')
 })
+
+test('keeps View Bill and Create New Bill when the saved bill cannot be loaded', async () => {
+  const user = userEvent.setup()
+  saveDraft(sessionStorage, storedDraft)
+  vi.mocked(api.createBill).mockResolvedValue(createdBill)
+  vi.mocked(billsApi.getBill).mockRejectedValue(new Error('network'))
+  renderPage()
+
+  await user.click(screen.getByRole('button', { name: 'Save Bill' }))
+
+  await vi.waitFor(() =>
+    expect(toast.error).toHaveBeenCalledWith('Could not load the saved bill for printing.'),
+  )
+  expect(screen.getByRole('link', { name: 'View Bill' })).toHaveAttribute('href', '/bills/bill-1')
+  expect(screen.getByRole('button', { name: 'Create New Bill' })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Print' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Download PDF' })).not.toBeInTheDocument()
+})
+
