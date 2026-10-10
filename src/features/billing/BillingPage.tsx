@@ -38,11 +38,23 @@ function newDraft(): Draft {
   return createDraft(todayIsoDate(), crypto.randomUUID())
 }
 
+function loadOrCreateDraft(): Draft {
+  const stored = loadDraft(sessionStorage)
+  if (stored) return stored
+  const created = newDraft()
+  saveDraft(sessionStorage, created)
+  return created
+}
+
+function isValidQuantityText(text: string): boolean {
+  return /^\d+$/.test(text) && Number(text) >= 1 && Number(text) <= 9999
+}
+
 const cell =
   "flex justify-between gap-3 px-3 py-1 before:font-medium before:text-slate-600 before:content-[attr(data-label)] md:table-cell md:py-2 md:before:content-none"
 
 export function BillingPage() {
-  const [draft, setDraft] = useState<Draft>(() => loadDraft(sessionStorage) ?? newDraft())
+  const [draft, setDraft] = useState<Draft>(loadOrCreateDraft)
   const [saved, setSaved] = useState<CreatedBill | null>(null)
   const [saving, setSaving] = useState(false)
   const [qtyEdits, setQtyEdits] = useState<Record<string, string>>({})
@@ -113,7 +125,7 @@ export function BillingPage() {
 
   function changeQuantity(serviceId: string, text: string) {
     setQtyEdits((edits) => ({ ...edits, [serviceId]: text }))
-    if (/^\d+$/.test(text)) commit(setQuantity(draft, serviceId, Number(text)))
+    if (isValidQuantityText(text)) commit(setQuantity(draft, serviceId, Number(text)))
   }
 
   function dropEdit<T>(edits: Record<string, T>, serviceId: string): Record<string, T> {
@@ -149,9 +161,11 @@ export function BillingPage() {
   })
   const headerErrors = header.success ? {} : header.error.flatten().fieldErrors
   const hasBadPrice = Object.keys(badPrices).length > 0
+  const badQuantities = Object.entries(qtyEdits).filter(([, text]) => !isValidQuantityText(text))
+  const hasBadQuantity = badQuantities.length > 0
 
   async function save() {
-    if (!header.success || hasBadPrice) return
+    if (!header.success || hasBadPrice || hasBadQuantity) return
     setSaving(true)
     try {
       const created = await createBill(draft)
@@ -166,7 +180,7 @@ export function BillingPage() {
   }
 
   function startNewBill() {
-    setDraft(newDraft())
+    commit(newDraft())
     setSaved(null)
     setQtyEdits({})
     setPriceEdits({})
@@ -288,18 +302,30 @@ export function BillingPage() {
                   {typeLabels[line.itemType]}
                 </td>
                 <td data-label="Quantity" className={cell}>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    step={1}
-                    min={1}
-                    max={9999}
-                    aria-label={`Quantity for ${line.itemName}`}
-                    value={qtyEdits[line.serviceId] ?? String(line.quantity)}
-                    onChange={(event) => changeQuantity(line.serviceId, event.target.value)}
-                    onBlur={() => setQtyEdits((edits) => dropEdit(edits, line.serviceId))}
-                    className="w-24 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-teal-800"
-                  />
+                  <div>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      step={1}
+                      min={1}
+                      max={9999}
+                      aria-label={`Quantity for ${line.itemName}`}
+                      value={qtyEdits[line.serviceId] ?? String(line.quantity)}
+                      onChange={(event) => changeQuantity(line.serviceId, event.target.value)}
+                      onBlur={() => {
+                        if (isValidQuantityText(qtyEdits[line.serviceId] ?? '1')) {
+                          setQtyEdits((edits) => dropEdit(edits, line.serviceId))
+                        }
+                      }}
+                      className="w-24 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-teal-800"
+                    />
+                    {qtyEdits[line.serviceId] !== undefined &&
+                    !isValidQuantityText(qtyEdits[line.serviceId]) ? (
+                      <p role="alert" className="text-sm text-red-700">
+                        Quantity must be a whole number from 1 to 9999.
+                      </p>
+                    ) : null}
+                  </div>
                 </td>
                 <td data-label="Unit Price" className={cell}>
                   <div>
@@ -347,7 +373,7 @@ export function BillingPage() {
         </p>
         <Button
           variant="primary"
-          disabled={!canSave(draft) || saving || hasBadPrice || !header.success}
+          disabled={!canSave(draft) || saving || hasBadPrice || hasBadQuantity || !header.success}
           onClick={() => void save()}
         >
           Save Bill
