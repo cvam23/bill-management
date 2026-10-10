@@ -27,23 +27,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true
+    // Each auth input (initial getSession or an auth event) takes a version when
+    // it starts. Only the latest version may commit, so slow authorization
+    // checks from older inputs can never overwrite newer state.
+    let latest = 0
 
-    async function apply(next: Session | null) {
+    async function apply(next: Session | null, version: number) {
       const ok = next ? await checkAuthorized().catch(() => false) : false
-      if (!active) return
+      if (!active || version !== latest) return
       setSession(next)
       setAuthorized(ok)
       setLoading(false)
     }
 
+    const initialVersion = ++latest
     supabase.auth
       .getSession()
-      .then(({ data }) => apply(data.session))
-      .catch(() => apply(null))
+      .then(({ data }) => apply(data.session, initialVersion))
+      .catch(() => apply(null, initialVersion))
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, next) => {
+      const version = ++latest
       // Defer to avoid calling supabase inside the auth callback.
-      setTimeout(() => void apply(next), 0)
+      setTimeout(() => void apply(next, version), 0)
     })
 
     return () => {
