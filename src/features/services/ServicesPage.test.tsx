@@ -107,3 +107,34 @@ test('add shows the new item number and maps duplicate_name to the name field', 
   expect(await screen.findByText('Item number 1001')).toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
 })
+
+test('returns to the last valid page when a mutation empties the current page', async () => {
+  const items: MasterItem[] = Array.from({ length: 21 }, (_, index) => ({
+    ...activeItem,
+    id: `item-${index + 1}`,
+    itemNumber: String(1021 - index),
+    name: `Item ${index + 1}`,
+  }))
+  const api = makeApi([])
+  api.listMasterItems.mockImplementation(async (query: { page: number }) => {
+    const active = items.filter((item) => item.isActive)
+    return { rows: active.slice((query.page - 1) * 20, query.page * 20), total: active.length }
+  })
+  api.setMasterItemActive.mockImplementation(async (id: string, isActive: boolean) => {
+    const item = items.find((candidate) => candidate.id === id) as MasterItem
+    item.isActive = isActive
+    return item
+  })
+  const user = userEvent.setup()
+  render(<ServicesPage api={api} />)
+
+  await screen.findByText('Item 1')
+  await user.click(screen.getByRole('button', { name: 'Next' }))
+  expect(await screen.findByText('Item 21')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Deactivate' }))
+  await user.click(screen.getByRole('button', { name: 'Confirm' }))
+
+  expect(await screen.findByText('Item 1')).toBeInTheDocument()
+  expect(screen.queryByText('No matching items')).not.toBeInTheDocument()
+  expect(api.listMasterItems).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1 }))
+})

@@ -58,7 +58,14 @@ export function ServicesPage({ api = servicesApi }: ServicesPageProps) {
     api
       .listMasterItems(query)
       .then((loaded) => {
-        if (!cancelled) setResult({ api, query, reloadKey, ...loaded, failed: false })
+        if (cancelled) return
+        const clampedPage =
+          loaded.total >= 1 ? Math.min(query.page, Math.ceil(loaded.total / PAGE_SIZE)) : 1
+        if (clampedPage !== query.page) {
+          setQuery({ ...query, page: clampedPage })
+          return
+        }
+        setResult({ api, query, reloadKey, ...loaded, failed: false })
       })
       .catch(() => {
         if (!cancelled)
@@ -216,7 +223,7 @@ export function ServicesPage({ api = servicesApi }: ServicesPageProps) {
         </div>
       ) : null}
 
-      {total > PAGE_SIZE ? (
+      {total > PAGE_SIZE || query.page > 1 ? (
         <div className="flex items-center justify-end gap-2 text-sm">
           <Button
             disabled={query.page <= 1}
